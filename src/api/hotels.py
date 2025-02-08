@@ -1,5 +1,5 @@
 from fastapi import Query, Body, APIRouter
-from schemas.hotel import Hotel, HotelPatch
+from src.schemas.hotel import Hotel, HotelPatch
 
 
 router = APIRouter(prefix='/hotels', tags=['Отели'])
@@ -36,8 +36,8 @@ def get_count(counts=0):
 def get_hotels(
         title: str | None = Query(None, description='Название отеля'),
         id: int | None = Query(None, description='Идентификатор'),
-        page: int = Query(1, description='Номер страницы'),
-        per_page: int = Query(5, description='Кол-во отелей на странице'),
+        page: int = Query(1, description='Номер страницы', ge=1),
+        per_page: int = Query(5, description='Кол-во отелей на странице', ge=1, lt=30),
 ):
     counts = get_count()
     hotels_ = []
