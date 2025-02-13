@@ -43,7 +43,7 @@ def get_count(counts=0):
 async def get_hotels(
         pagination: PaginationDep,
         title: str | None = Query(None, description='Название отеля'),
-        id: int | None = Query(None, description='Идентификатор')
+        location: str | None = Query(None, description='Местоположение отеля')
 
 ):
     # counts = get_count()
@@ -64,10 +64,11 @@ async def get_hotels(
         #          .offset(pagination.per_page*(pagination.page - 1))
         #          )
         query = select(HotelsOrm)
-        if id:
-            query = query.filter_by(id=id)
+        if location:
+            query = query.filter(HotelsOrm.location.contains(location))
         if title:
-            query = query.filter_by(title=title)
+            # query = query.filter_by(title=title)
+            query = query.filter(HotelsOrm.title.contains(title))
         query = (
             query
             .limit(per_page)
