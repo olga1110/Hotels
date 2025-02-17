@@ -1,4 +1,4 @@
-from fastapi import Query, Body, APIRouter
+from fastapi import Query, Body, APIRouter, HTTPException, status
 from sqlalchemy import insert, select, func
 
 from src.api.dependencies import PaginationDep
@@ -92,10 +92,20 @@ async def get_hotels(
                 summary = 'Удаление данных об отеле',
                 description = '<h1>Удаление данных об отеле по id</h1>'
                 )
-def delete_hotels(hotel_id: int):
-    global hotels
-    hotels = [hotel for hotel in hotels if hotel['id'] != hotel_id]
-    return {"status": "OK"}
+async def delete_hotels(hotel_id: int):
+    # global hotels
+    # hotels = [hotel for hotel in hotels if hotel['id'] != hotel_id]
+    async with async_session_maker() as session:
+        res = await HotelsRepository(session).delete(id=hotel_id)
+        await session.commit()
+        if res == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Отель с id {hotel_id} не найден")
+        # elif res == 400:
+        #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"С id {hotel_id} найдено более 1 отеля")
+        return {"status": "OK"}
+    # HTTPException
+    # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
 
 
 @router.post('',
@@ -122,7 +132,7 @@ async def create_hotel(
     async with async_session_maker() as session:
         hotel = await HotelsRepository(session).add(hotel_data)
         await session.commit()
-    return {"status": "OK", "data": hotel.scalars().one()}
+    return {"status": "OK", "data": hotel}
 
 
 def edit_hotel(hotel_id: int, title: str | None, name: str| None):
@@ -151,8 +161,16 @@ def edit_hotel(hotel_id: int, title: str | None, name: str| None):
             summary='Редактирование отеля',
             description='<h1>Подробное описание метода</h1>'
             )
-def put_hotel(hotel_id: int, hotel_data: Hotel):
-    return edit_hotel(hotel_id, hotel_data.title, hotel_data.name)
+async def put_hotel(hotel_id: int, hotel_data: Hotel):
+    # return edit_hotel(hotel_id, hotel_data.title, hotel_data.name)
+    async with async_session_maker() as session:
+        res = await HotelsRepository(session).edit(hotel_data, id=hotel_id)
+        await session.commit()
+        if res == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Отель с id {hotel_id} не найден")
+        # elif res == 400:
+        #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"С id {hotel_id} найдено более 1 отеля")
+        return {"status": "OK"}
 
 @router.patch("/{hotel_id}",
            summary='Частичное обновление данных об отеле',

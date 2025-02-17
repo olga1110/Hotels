@@ -1,4 +1,5 @@
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, delete, update
+from pydantic import BaseModel
 
 
 class BaseRepository:
@@ -15,7 +16,42 @@ class BaseRepository:
         result = await self.session.execute(query)
         return result.scalars().one_or_none()
 
-    async def add(self, obj_data):
-        add_obj_stmt = insert(self.model).values(**obj_data.model_dump()).returning(self.model)
+    async def add(self, data: BaseModel):
+        add_obj_stmt = insert(self.model).values(**data.model_dump()).returning(self.model)
         print(add_obj_stmt.compile(compile_kwargs={'literal_binds': True}))
-        return await self.session.execute(add_obj_stmt)
+        result = await self.session.execute(add_obj_stmt)
+        return result.scalars.one()
+
+    async def edit(self, data: BaseModel, **filter_by) -> None:
+        query = select(self.model).filter_by(**filter_by)
+        result = await self.session.execute(query)
+        res = result.scalars().all()
+        if not res:
+            return 404
+        elif len(res) == 1:
+            update_stmt = update(self.model).filter_by(**filter_by).values(**data.model_dump())
+            await self.session.execute(update_stmt)
+            return 200
+        else:
+            return 400
+
+    async def delete(self, **filter_by) -> int:
+        query = select(self.model).filter_by(**filter_by)
+        result = await self.session.execute(query)
+        res = result.scalars().all()
+        print(f'{res=}')
+        if not res:
+            return 404
+        elif len(res) == 1:
+            delete_stmt = delete(self.model).filter_by(**filter_by)
+            await self.session.execute(delete_stmt)
+            return 200
+        else:
+            return 400
+
+
+        # session.delete(instance)
+
+        # session.query(MyModel).filter(MyModel.id==1).delete()
+        # session.commit()
+
