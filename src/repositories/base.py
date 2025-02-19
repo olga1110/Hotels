@@ -22,14 +22,18 @@ class BaseRepository:
         result = await self.session.execute(add_obj_stmt)
         return result.scalars.one()
 
-    async def edit(self, data: BaseModel, **filter_by) -> None:
+    async def edit(self, data: BaseModel, exclude_unset:bool = False, **filter_by) -> None:
         query = select(self.model).filter_by(**filter_by)
         result = await self.session.execute(query)
         res = result.scalars().all()
         if not res:
             return 404
         elif len(res) == 1:
-            update_stmt = update(self.model).filter_by(**filter_by).values(**data.model_dump())
+            update_stmt = (update(self.model)
+                           .filter_by(**filter_by)
+                           .values(**data.model_dump(
+                                    exclude_unset=exclude_unset))
+                           )
             await self.session.execute(update_stmt)
             return 200
         else:
@@ -49,9 +53,4 @@ class BaseRepository:
         else:
             return 400
 
-
-        # session.delete(instance)
-
-        # session.query(MyModel).filter(MyModel.id==1).delete()
-        # session.commit()
 

@@ -1,10 +1,9 @@
 from fastapi import Query, Body, APIRouter, HTTPException, status
-from sqlalchemy import insert, select, func
 
 from src.api.dependencies import PaginationDep
 from src.database import async_session_maker
-from src.models.hotels import HotelsOrm
-from src.database import engine
+
+
 from src.repositories.hotels import HotelsRepository
 
 from src.schemas.hotel import Hotel, HotelPatch
@@ -175,5 +174,13 @@ async def put_hotel(hotel_id: int, hotel_data: Hotel):
 @router.patch("/{hotel_id}",
            summary='Частичное обновление данных об отеле',
             description='<h1>Подробное описание метода</h1>')
-def patch_hotel(hotel_id: int, hotel_data: HotelPatch):
-    return edit_hotel(hotel_id, hotel_data.title, hotel_data.name)
+async def patch_hotel(hotel_id: int, hotel_data: HotelPatch):
+    # return edit_hotel(hotel_id, hotel_data.title, hotel_data.name)
+    async with async_session_maker() as session:
+        res = await HotelsRepository(session).edit(hotel_data, exclude_unset=True, id=hotel_id)
+        await session.commit()
+        if res == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Отель с id {hotel_id} не найден")
+        # elif res == 400:
+        #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"С id {hotel_id} найдено более 1 отеля")
+        return {"status": "OK"}
