@@ -37,8 +37,8 @@ def get_count(counts=0):
 
 
 @router.get('',
-            summary='Получение данных об отеле',
-            description='<h1>Получение данных об отеле по названию</h1>'
+            summary='Получение данных об отелях',
+            description='<h1>Получение данных об отеле по названию/местоположению</h1>'
             )
 async def get_hotels(
         pagination: PaginationDep,
@@ -79,12 +79,21 @@ async def get_hotels(
         # print(type(hotels), hotels)
         # return hotels
 
-
-
     # пагинация
     # start = (page + counts - 2) * per_page
     # return hotels_[start: start + per_page]
     return hotels_[pagination.per_page*(pagination.page-1):][:pagination.per_page]
+
+
+@router.get('/{hotel_id}',
+            summary='Получение данных об отеле',
+            description='<h1>Получение данных об отеле по id</h1>')
+async def get_hotel(hotel_id: int):
+    # получить id, title и location
+    async with async_session_maker() as session:
+        return await HotelsRepository(session).get_one_or_none(
+            id=hotel_id
+        )
 
 
 @router.delete('/{hotel_id}',
