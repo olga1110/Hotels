@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from src.api.hotels import router as router_hotels
+from src.api.auth import router as router_auth
 from src.config import settings
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -12,6 +13,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 print(f'{settings.DB_NAME=}')
 
 app = FastAPI()
+
+app.include_router(router_auth)
 app.include_router(router_hotels)
 
 

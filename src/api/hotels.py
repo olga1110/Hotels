@@ -6,7 +6,7 @@ from src.database import async_session_maker
 
 from src.repositories.hotels import HotelsRepository
 
-from src.schemas.hotel import Hotel, HotelPatch
+from src.schemas.hotel import Hotel, HotelAdd, HotelPatch
 
 
 router = APIRouter(prefix='/hotels', tags=['Отели'])
@@ -122,7 +122,7 @@ async def delete_hotels(hotel_id: int):
              )
 async def create_hotel(
         # title: str = Body(embed=True)
-        hotel_data: Hotel = Body(
+        hotel_data: HotelAdd = Body(
             openapi_examples=
              {"1": {"summary": "Сочи", "value": {
                  "title": "Сочи у моря",
@@ -169,7 +169,7 @@ def edit_hotel(hotel_id: int, title: str | None, name: str| None):
             summary='Редактирование отеля',
             description='<h1>Подробное описание метода</h1>'
             )
-async def put_hotel(hotel_id: int, hotel_data: Hotel):
+async def put_hotel(hotel_id: int, hotel_data: HotelAdd):
     # return edit_hotel(hotel_id, hotel_data.title, hotel_data.name)
     async with async_session_maker() as session:
         res = await HotelsRepository(session).edit(hotel_data, id=hotel_id)
