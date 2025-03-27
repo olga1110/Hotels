@@ -49,7 +49,7 @@ async def get_me(
     return user
 
 
-@router.post('/logout')
+@router.get('/logout')
 async def logout_user(
         response: Response
 ):
