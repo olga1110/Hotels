@@ -7,23 +7,9 @@ from src.database import async_session_maker
 from src.repositories.hotels import HotelsRepository
 from src.repositories.rooms import RoomsRepository
 
-from src.schemas.rooms import RoomsAdd, RoomsPatch
+from src.schemas.rooms import RoomsAdd, RoomsPatch, RoomsAddRequest, RoomsPatchRequest
 
 router = APIRouter(prefix='/hotels', tags=['Номера'])
-
-
-def count(func):
-    counters = {}
-    def wrapper(**kwargs):
-        counters[func] = counters.get(func, 0) + 1
-        print(f'Функция {func.__name__} вызвана {counters[func]} раз')
-        return func(counts=counters[func],  **kwargs)
-    return wrapper
-
-
-@count
-def get_count(counts=0):
-    return counts
 
 
 @router.get('/{hotel_id}/rooms/',
@@ -56,8 +42,6 @@ async def get_room(hotel_id: int, room_id: int):
                 description='<h1>Удаление данных об отеле по id</h1>'
                 )
 async def delete_hotels(hotel_id: int, room_id: int):
-    # global hotels
-    # hotels = [hotel for hotel in hotels if hotel['id'] != hotel_id]
     async with async_session_maker() as session:
         res = await RoomsRepository(session).delete(hotel_id=hotel_id, id=room_id)
         await session.commit()
@@ -66,27 +50,22 @@ async def delete_hotels(hotel_id: int, room_id: int):
         # elif res == 400:
         #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"С id {hotel_id} найдено более 1 отеля")
         return {"status": "OK"}
-    # HTTPException
-    # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
 @router.post('/{hotel_id}/rooms',
              summary='Создание номера отеля',
              description='<h1>Подробное описание метода</h1>'
              )
-async def create_room(
-        # title: str = Body(embed=True)
-        room_data: RoomsAdd = Body(
+async def create_room(hotel_id: int,
+        room_data: RoomsAddRequest = Body(
             openapi_examples=
              {"1": {"summary": "2-х местный", "value": {
-                     "hotel_id": 20,
                      "title": "стандартный 2-х местный",
                      "description": "стандартный",
                      "price": 3000,
                      "quantity": 5
              }},
              "2": {"summary": "3-х местный", "value": {
-                     "hotel_id": 23,
                      "title": "lux 3-х местный",
                      "description": "lux",
                      "price": 5000,
@@ -94,43 +73,21 @@ async def create_room(
              }}
          })
 ):
+    _room_data = RoomsAdd(hotel_id=hotel_id, **room_data.model_dump())
     async with async_session_maker() as session:
-        room = await RoomsRepository(session).add(room_data)
+        room = await RoomsRepository(session).add(_room_data)
         await session.commit()
     return {"status": "OK", "data": room}
-
-
-def edit_hotel(hotel_id: int, title: str | None, name: str| None):
-    global hotels
-    hotel = None
-
-    if title is None and name is None:
-        return {"status": "validation error", "content": "pass at least one parameter"}
-    for num, element in enumerate(hotels):
-        if element['id'] == hotel_id:
-            hotel = element
-            num = num
-            break
-
-    if hotel is None:
-        print(f'{hotels=}')
-        return {"status": "OK", "content": "hotel not found"}
-
-    if title:
-        hotels[num]['title'] = title
-    if name:
-        hotels[num]['name'] = name
-    return hotel
 
 
 @router.put("/{hotel_id}/rooms/{room_id}",
             summary='Редактирование номера',
             description='<h1>Подробное описание метода</h1>'
             )
-async def put_room(hotel_id: int, room_id: int, room_data: RoomsAdd):
-    # return edit_hotel(hotel_id, hotel_data.title, hotel_data.name)
+async def put_room(hotel_id: int, room_id: int, room_data: RoomsAddRequest):
     async with async_session_maker() as session:
-        res = await RoomsRepository(session).edit(room_data, hotel_id=hotel_id, id=room_id)
+        _room_data = RoomsAdd(hotel_id=hotel_id, **room_data.model_dump())
+        res = await RoomsRepository(session).edit(_room_data, hotel_id=hotel_id, id=room_id)
         await session.commit()
         if res == 404:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Номер с id {room_id} в {hotel_id} не найден")
@@ -140,10 +97,10 @@ async def put_room(hotel_id: int, room_id: int, room_data: RoomsAdd):
 @router.patch("/{hotel_id}/rooms/{room_id}",
            summary='Частичное обновление данных о номере',
             description='<h1>Подробное описание метода</h1>')
-async def patch_hotel(hotel_id: int, room_id: int, room_data: RoomsPatch):
-    # return edit_hotel(hotel_id, hotel_data.title, hotel_data.name)
+async def patch_hotel(hotel_id: int, room_id: int, room_data: RoomsPatchRequest):
     async with async_session_maker() as session:
-        res = await RoomsRepository(session).edit(room_data, exclude_unset=True, hotel_id=hotel_id, id=room_id)
+        _room_data = RoomsPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
+        res = await RoomsRepository(session).edit(_room_data, exclude_unset=True, hotel_id=hotel_id, id=room_id)
         await session.commit()
         if res == 404:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Номер с id {room_id} в {hotel_id} не найден")
