@@ -29,8 +29,23 @@ async def create_booking(
              }}
          })
 ):
-    await db.bookings.get_price()
-    _booking_data = BookingsAdd(price=db.bookings.model.total_cost, user_id=user_id, **booking_data.model_dump(exclude_unset=True))
+    room = await db.rooms.get_one_or_none(id=booking_data.room_id)
+    room_price: int = room.price
+    _booking_data = BookingsAdd(price=room_price, user_id=user_id, **booking_data.model_dump(exclude_unset=True))
     booking = await db.bookings.add(_booking_data)
     await db.commit()
     return {"status": "OK", "data": booking}
+
+
+@router.get('',
+            summary='Получение данных о всех бронированиях'
+            )
+async def get_bookings(db: DBDep, user_id: UserIdDep):
+    return await db.bookings.get_filtered(user_id=user_id)
+
+
+@router.get('/me',
+            summary='Получение данных о бронированиях пользователя'
+            )
+async def get_bookings(db: DBDep, ):
+    return await db.bookings.get_all()
