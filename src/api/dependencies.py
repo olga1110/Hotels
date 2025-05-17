@@ -5,6 +5,11 @@ from pydantic import BaseModel
 
 from src.database import async_session_maker
 from src.services.auth import AuthServices
+from src.exceptions import (
+    IncorrectTokenException,
+    IncorrectTokenHTTPException,
+    NoAccessTokenHTTPException,
+)
 from src.utils.db_manager import DBManager
 
 
@@ -23,9 +28,13 @@ def get_token(request: Request) -> str:
     return token
 
 
-def get_current_user_id(token: str = Depends(get_token)):
-    data = AuthServices().decode_token(token)
-    return data['user_id']
+def get_current_user_id(token: str = Depends(get_token)) -> int:
+    try:
+        data = AuthServices().decode_token(token)
+    except IncorrectTokenException:
+        raise IncorrectTokenHTTPException
+    return data["user_id"]
+
 
 UserIdDep = Annotated[id, Depends(get_current_user_id)]
 
