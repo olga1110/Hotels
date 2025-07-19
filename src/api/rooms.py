@@ -8,6 +8,7 @@ from src.database import async_session_maker
 
 
 from src.repositories.rooms import RoomsRepository
+from src.schemas.facilities import RoomsFacilitiesAdd
 
 from src.schemas.rooms import RoomsAdd, RoomsPatch, RoomsAddRequest, RoomsPatchRequest
 
@@ -80,18 +81,24 @@ async def create_room(hotel_id: int, db: DBDep,
                      "title": "стандартный 2-х местный",
                      "description": "стандартный",
                      "price": 3000,
-                     "quantity": 5
+                     "quantity": 5,
+                    "facilities_ids": [1, 2]
              }},
              "2": {"summary": "3-х местный", "value": {
                      "title": "lux 3-х местный",
                      "description": "lux",
                      "price": 5000,
-                     "quantity": 2
+                     "quantity": 2,
+                    "facilities_ids": [1, 2]
              }}
          })
 ):
     _room_data = RoomsAdd(hotel_id=hotel_id, **room_data.model_dump())
     room = await db.rooms.add(_room_data)
+
+    rooms_facilities_data = [RoomsFacilitiesAdd(room_id=room.id, facility_id=f_id) for f_id in room_data.facilities_ids]
+    await db.rooms.add_bulk(rooms_facilities_data)
+
     await db.commit()
     return {"status": "OK", "data": room}
 
