@@ -4,11 +4,11 @@ from fastapi import Query, Body, APIRouter, HTTPException, status
 
 from src.api.dependencies import DBDep
 from src.database import async_session_maker
-
-
+from src.models.facilities import RoomsFacilitiesOrm
 
 from src.repositories.rooms import RoomsRepository
-from src.schemas.facilities import RoomsFacilitiesAdd
+from src.repositories.utils import edit_rooms_facilities
+from src.schemas.facilities import RoomsFacilitiesAdd, RoomsFacilities
 
 from src.schemas.rooms import RoomsAdd, RoomsPatch, RoomsAddRequest, RoomsPatchRequest
 
@@ -89,7 +89,7 @@ async def create_room(hotel_id: int, db: DBDep,
                      "description": "lux",
                      "price": 5000,
                      "quantity": 2,
-                    "facilities_ids": [1, 2]
+                     "facilities_ids": [1, 2]
              }}
          })
 ):
@@ -97,7 +97,7 @@ async def create_room(hotel_id: int, db: DBDep,
     room = await db.rooms.add(_room_data)
 
     rooms_facilities_data = [RoomsFacilitiesAdd(room_id=room.id, facility_id=f_id) for f_id in room_data.facilities_ids]
-    await db.rooms.add_bulk(rooms_facilities_data)
+    await db.rooms_facilities.add_bulk(rooms_facilities_data)
 
     await db.commit()
     return {"status": "OK", "data": room}
@@ -110,6 +110,8 @@ async def create_room(hotel_id: int, db: DBDep,
 async def put_room(hotel_id: int, room_id: int, room_data: RoomsAddRequest, db: DBDep):
     _room_data = RoomsAdd(hotel_id=hotel_id, **room_data.model_dump())
     res = await db.rooms.edit(_room_data, hotel_id=hotel_id, id=room_id)
+    #  facilities_ids
+    await edit_rooms_facilities(room_data.facilities_ids, room_id, db)
     await db.commit()
     if res == 404:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Номер с id {room_id} в {hotel_id} не найден")
@@ -122,6 +124,8 @@ async def put_room(hotel_id: int, room_id: int, room_data: RoomsAddRequest, db: 
 async def patch_hotel(hotel_id: int, room_id: int, room_data: RoomsPatchRequest, db: DBDep):
     _room_data = RoomsPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
     res = await db.rooms.edit(_room_data, exclude_unset=True, hotel_id=hotel_id, id=room_id)
+    if room_data.facilities_ids:
+        await edit_rooms_facilities(room_data.facilities_ids, room_id, db)
     await db.commit()
     if res == 404:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Номер с id {room_id} в {hotel_id} не найден")
