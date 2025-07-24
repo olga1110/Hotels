@@ -7,7 +7,6 @@ from src.database import async_session_maker
 from src.models.facilities import RoomsFacilitiesOrm
 
 from src.repositories.rooms import RoomsRepository
-from src.repositories.utils import edit_rooms_facilities
 from src.schemas.facilities import RoomsFacilitiesAdd, RoomsFacilities
 
 from src.schemas.rooms import RoomsAdd, RoomsPatch, RoomsAddRequest, RoomsPatchRequest
@@ -111,7 +110,7 @@ async def put_room(hotel_id: int, room_id: int, room_data: RoomsAddRequest, db: 
     _room_data = RoomsAdd(hotel_id=hotel_id, **room_data.model_dump())
     res = await db.rooms.edit(_room_data, hotel_id=hotel_id, id=room_id)
     #  facilities_ids
-    await edit_rooms_facilities(room_data.facilities_ids, room_id, db)
+    await db.rooms_facilities.set_rooms_facilities(room_id, facilities_ids=room_data.facilities_ids)
     await db.commit()
     if res == 404:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Номер с id {room_id} в {hotel_id} не найден")
@@ -122,10 +121,11 @@ async def put_room(hotel_id: int, room_id: int, room_data: RoomsAddRequest, db: 
            summary='Частичное обновление данных о номере',
             description='<h1>Подробное описание метода</h1>')
 async def patch_hotel(hotel_id: int, room_id: int, room_data: RoomsPatchRequest, db: DBDep):
+    _room_data_dict = room_data.model_dump(exclude_unset=True)
     _room_data = RoomsPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
     res = await db.rooms.edit(_room_data, exclude_unset=True, hotel_id=hotel_id, id=room_id)
-    if room_data.facilities_ids:
-        await edit_rooms_facilities(room_data.facilities_ids, room_id, db)
+    if 'facilities_ids' in _room_data_dict:
+        await db.rooms_facilities.set_rooms_facilities(room_id, facilities_ids=_room_data_dict['facilities_ids'])
     await db.commit()
     if res == 404:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Номер с id {room_id} в {hotel_id} не найден")

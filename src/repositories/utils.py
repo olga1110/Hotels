@@ -50,24 +50,3 @@ def rooms_ids_for_booking(date_from: date,
 
     print(rooms_ids_to_get.compile(bind=engine, compile_kwargs={'literal_binds': True}))
     return rooms_ids_to_get
-
-
-async def edit_rooms_facilities(new_facilities, room_id, db):
-    facilities_lst = await db.rooms_facilities.get_filtered(room_id=room_id)
-    print(f'{type(facilities_lst)=}')
-    print(f'{facilities_lst=}')
-    rooms_list = [i.facility_id for i in facilities_lst]
-    if add_lst := list(set(new_facilities) - set(rooms_list)):
-        print('создаем записи')
-        rooms_facilities_data = [RoomsFacilitiesAdd(room_id=room_id, facility_id=f_id) for f_id in add_lst]
-        await db.rooms_facilities.add_bulk(rooms_facilities_data)
-    if delete_lst := list(set(rooms_list) - set(new_facilities)):
-        print('записи к удалению', delete_lst)
-        # await db.rooms_facilities.delete(RoomsFacilities.facility_id.in_(delete_lst))
-        await db.rooms_facilities.delete(delete_lst)
-
-
-
-
-
-
