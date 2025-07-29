@@ -51,7 +51,7 @@ async def get_rooms(
             description='<h1>Получение данных о номере отеля по id</h1>')
 async def get_room(hotel_id: int, room_id: int, db: DBDep):
     return await db.rooms.get_one_or_none(
-        hotel_id=hotel_id, id=room_id
+        hotel_id, room_id
     )
 
 
