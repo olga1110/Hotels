@@ -3,6 +3,7 @@ from datetime import date
 from src.models.bookings import BookingsOrm
 from src.repositories.base import BaseRepository
 from src.models.rooms import RoomsOrm
+from src.repositories.mappers.mappers import RoomDataMapper, RoomDataWithRelsMapper
 from src.repositories.utils import rooms_ids_for_booking
 from src.schemas.rooms import Rooms, RoomsWithRels
 from sqlalchemy import select, func
@@ -13,6 +14,7 @@ from src.database import engine
 class RoomsRepository(BaseRepository):
     model = RoomsOrm
     schema = Rooms
+    mapper = RoomDataMapper
 
     async def get_all(self,
                       hotel,
@@ -24,7 +26,7 @@ class RoomsRepository(BaseRepository):
         print(query.compile(compile_kwargs={"literal_binds": True}))
         result = await self.session.execute(query)
         # return result.scalars().all()
-        return [Rooms.model_validate(room, from_attributes=True) for room in result.scalars().all()]
+        return [self.mapper.map_to_domain_entity(self.model) for room in result.scalars().all()]
 
     async def get_filtered_by_time(self,
                                    hotel_id,
@@ -38,7 +40,7 @@ class RoomsRepository(BaseRepository):
             .filter(RoomsOrm.id.in_(rooms_ids_to_get))
         )
         result=await self.session.execute(query)
-        return [RoomsWithRels.model_validate(model) for model in result.unique().scalars().all()]
+        return [RoomDataWithRelsMapper.map_to_domain_entity(model) for model in result.unique().scalars().all()]
 
     async def get_one_or_none(self, hotel_id, room_id):
         query = select(self.model).options(joinedload(self.model.facilities)).filter_by(hotel_id=hotel_id, id=room_id)
@@ -46,4 +48,4 @@ class RoomsRepository(BaseRepository):
         model = result.unique().scalars().one_or_none()
         if model is None:
             return None
-        return RoomsWithRels.model_validate(model, from_attributes=True)
+        return RoomDataWithRelsMapper.map_to_domain_entity(model)
