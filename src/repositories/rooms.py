@@ -16,17 +16,17 @@ class RoomsRepository(BaseRepository):
     schema = Rooms
     mapper = RoomDataMapper
 
-    async def get_all(self,
-                      hotel,
-                      title
-                      ) -> list[Rooms]:
-        query = select(RoomsOrm).filter_by(hotel_id=hotel)
-        if title:
-            query = query.filter(RoomsOrm.title.ilike(f'%{title.strip()}%'))
-        print(query.compile(compile_kwargs={"literal_binds": True}))
-        result = await self.session.execute(query)
-        # return result.scalars().all()
-        return [self.mapper.map_to_domain_entity(self.model) for room in result.scalars().all()]
+    # async def get_all(self,
+    #                   hotel,
+    #                   title
+    #                   ) -> list[Rooms]:
+    #     query = select(RoomsOrm).filter_by(hotel_id=hotel)
+    #     if title:
+    #         query = query.filter(RoomsOrm.title.ilike(f'%{title.strip()}%'))
+    #     print(query.compile(compile_kwargs={"literal_binds": True}))
+    #     result = await self.session.execute(query)
+    #     # return result.scalars().all()
+    #     return [self.mapper.map_to_domain_entity(self.model) for room in result.scalars().all()]
 
     async def get_filtered_by_time(self,
                                    hotel_id,
