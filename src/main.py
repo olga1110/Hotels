@@ -8,6 +8,8 @@ from pathlib import Path
 
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.backends.inmemory import InMemoryBackend
+
 from fastapi_cache.decorator import cache
 
 
@@ -27,9 +29,14 @@ sys.path.append(str(Path(__file__).parent.parent))
 async def lifespan(app: FastAPI):
     # при старте проекта
     await redis_manager.connect()
+    FastAPICache.init(RedisBackend(redis_manager.redis), prefix="fastapi-cache")
     yield
     # при переключении/перезагрузке проекта
     await redis_manager.close()
+
+
+if settings.MODE == 'TEST':
+    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
 
 
 print(f'{settings.DB_NAME=}')

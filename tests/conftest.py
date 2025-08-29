@@ -1,4 +1,7 @@
 import json
+from unit_tests import mock
+
+mock.patch('fastapi_cashe.decorator.cashe', lambda *args, **kwargs: lambda f: f).start()
 
 import pytest
 
