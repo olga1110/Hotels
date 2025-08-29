@@ -1,5 +1,5 @@
 import json
-from unit_tests import mock
+from unittest import mock
 
 mock.patch('fastapi_cashe.decorator.cashe', lambda *args, **kwargs: lambda f: f).start()
 
@@ -71,3 +71,16 @@ async def register_user(ac, setup_database):
             "password": "1234"
         }
     )
+
+
+@pytest.fixture(scope="session")
+async def authenticated_ac(register_user, ac):
+    await ac.post(
+        "/auth/login",
+        json={
+            "email": "kot@pes.com",
+            "password": "1234"
+        }
+    )
+    assert ac.cookies["access_token"]
+    yield ac
