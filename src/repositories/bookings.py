@@ -4,6 +4,7 @@ from src.models.rooms import RoomsOrm
 from src.repositories.mappers.mappers import BookingDataMapper
 from src.schemas.bookings import Bookings, BookingsAdd
 from sqlalchemy import select
+from fastapi import HTTPException
 
 
 class BookingsRepository(BaseRepository):
@@ -27,7 +28,7 @@ class BookingsRepository(BaseRepository):
             new_booking = await self.add(data)
             return new_booking
         else:
-            raise Exception
+            raise HTTPException(500)
 
 
 
